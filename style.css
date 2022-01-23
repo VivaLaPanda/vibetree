@@ -1,0 +1,48 @@
+body  {
+	background-color: "black";
+	margin: 0px;
+	color: white;
+	font-family: "calibri";
+}
+
+#canvas {
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.hover-box {
+	height: 50px;
+	width: 100px;
+	position: absolute;
+}
+
+#header {
+	text-align: center;
+	width: 150px;
+	top: 0px;
+	left: 0; 
+	right: 0; 
+	margin-left: auto; 
+	margin-right: auto;	
+}
+
+#left {
+	text-align: left;
+	left: 13%;
+    bottom: 11%;
+}
+
+#right {
+	text-align: right;
+	right: 13%;
+    bottom: 11%;
+}
+
+a {
+  color: white;
+  text-decoration: none; /* no underline */
+}
+
+a:hover {
+    text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #000000, 0 0 40px #000000, 0 0 50px #000000, 0 0 60px #000000, 0 0 70px #000000;
+}
