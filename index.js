@@ -1,6 +1,6 @@
 const ctx = document.getElementById('canvas').getContext("2d");
-canvas.width = window.innerWidth * .99;
-canvas.height = window.innerHeight * .997;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
 const defaultTree = {
 	"trunk": 0,
@@ -23,6 +23,7 @@ const defaultTree = {
 	"inkFactor": 8,
 	"heightFactor": 7.5,
 	"growthModifier": 1,
+	"glowModifier": 0,
 	"minGrowthMod": .1,
 	"maxGrowthMod": 5,
 	
@@ -235,6 +236,11 @@ function updateGrowthModifier(tree) {
 	
 	// Mapping from the gain range (0-100) to the growthModRange
 	tree.growthModifier = tree.minGrowthMod + ((tree.maxGrowthMod - tree.minGrowthMod) / (100 - 0)) * (average - 0)
+	if ((average / 10) > tree.glowModifier) {
+		tree.glowModifier += .01;
+	} else {
+		tree.glowModifier += -.01;
+	}
 }
 
 function resetTree(tree, wind) {
@@ -257,8 +263,15 @@ function update() {
 	ctx.fillRect(0,0,canvas.width,canvas.height);
 	updateWind(wind, tree.growthModifier);
 	updateTime(tree);
-	updateGrowthModifier(tree);
+
+    ctx.fillStyle = "black";
+    ctx.shadowBlur = tree.glowModifier * 50;
+    ctx.shadowColor = "white";
+	ctx.fillRect(0,canvas.height,canvas.width,canvas.height);
+
+    ctx.shadowBlur = 0;
 	
+	updateGrowthModifier(tree);
 	drawTree(tree);
 	requestAnimationFrame(update);
 }

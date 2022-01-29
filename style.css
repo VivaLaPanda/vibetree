@@ -3,6 +3,9 @@ body  {
 	margin: 0px;
 	color: white;
 	font-family: "calibri";
+	width: 100vw;
+	height: 100vh;
+	overflow: hidden;
 }
 
 #canvas {
@@ -15,8 +18,8 @@ body  {
 	position: absolute;
 	opacity: 0;
 	display: none;
-	transition: opacity 5s;
-	-webkit-transition: opacity 5s; /* Safari */
+	/* transition: opacity 1ms; */
+	/* -webkit-transition: opacity 1ms; */ /* Safari */
 }
 
 #header {
