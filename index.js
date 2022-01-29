@@ -2,265 +2,302 @@ const ctx = document.getElementById('canvas').getContext("2d");
 canvas.width = window.innerWidth * .99;
 canvas.height = window.innerHeight * .997;
 
-/* Seeded random functions
-   randSeed(int)  int is a seed value
-   randSI()  random integer 0 or 1
-   randSI(max) random integer from  0 <= random < max
-   randSI(min, max) random integer from min <= random < max
-   randS()  like Math.random
-   randS(max) random float 0 <= random < max
-   randS(min, max) random float min <= random < max
-   
-   */
-const seededRandom = (() => {
-    var seed = 1;
-    return { max : 2576436549074795, reseed (s) { seed = s }, random ()  { return seed = ((8765432352450986 * seed) + 8507698654323524) % this.max }}
-})();
-const randSeed = (seed) => seededRandom.reseed(seed|0);
-const randSI = (min = 2, max = min + (min = 0)) => (seededRandom.random() % (max - min)) + min;
-const randS  = (min = 1, max = min + (min = 0)) => (seededRandom.random() / seededRandom.max) * (max - min) + min;
-
-
-/* TREE CONSTANTS all angles in radians and lengths/widths are in pixels */
-const angMin = 0.1;  // branching angle min and max
-const angMax = 0.6;
-const lengMin = 0.7;  // length reduction per branch min and max
-const lengMax = 0.9;
-var widthMin; // width reduction per branch min max 6
-var widthMax;
-var trunkStartingHeight; // 1/this
-var trunkMin;  // trunk base width ,min and max
-var trunkMax;
-var maxBranches; // max number of branches
-
-/* const angMin = 0.01;  // branching angle min and max
-const angMax= 0.6;
-var lengMin = 0.7;  // length reduction per branch min and max
-var lengMax = 0.9;
-var widthMin = 0.6; // width reduction per branch min max 6
-var widthMax = 0.8;
-var trunkStartingHeight = 10; // 1/this
-var trunkMin = 6;  // trunk base width ,min and max
-var trunkMax = 10;
-var maxBranches = 3; // max number of branches */
-
-var baseInk = 10;
-var ink = baseInk;
-
-/* canvas.onmousewheel = function (event) {
-	if (event.wheelDelta > 0) {
-		passTime(1)
-	} else {
-		passTime(-1)
-	}
-} */
-
-var age = 1
-var agingDirection = 1;
-var stopAging = false;
-function passTime(time) {
-	if (stopAging) {
-		return
-	}
+const defaultTree = {
+	"trunk": 0,
+	"angMin": 0.1,
+	"angMax": 0.6,
+	"lengMin": 0.7,
+	"lengMax": 0.9,
+	"widthMin": 0.6,
+	"widthMax": 0.8,
+	"trunkStartingHeight": 20,
+	"trunkMin": 10,
+	"trunkMax": 15,
+	"trunk": 0,
+	"currentBranches": 0,
+	"maxBranches": 7000,
 	
-	age += time * agingDirection
+	"agingDirection": 1,
+	"inkPot": 1,
+	"ink": 1,
+	"inkFactor": 8,
+	"heightFactor": 7.5,
+	"growthModifier": 1,
+	"minGrowthMod": .1,
+	"maxGrowthMod": 5,
 	
-	if (baseInk <= 1) {
-		agingDirection *= -1;
-		restartTree();
-	}
-
-	// lengMax += agingDirection * .00000025 * age;
-	// if (lengMax > 1) { lengMax = 1 };
+	"bendability": 6, // greater than 1. The bigger this number the more the thin branches will bend first
+	"windState": {},
 	
-	trunkStartingHeight = 10 + (age * .015 * -1)
-	if (trunkStartingHeight < 1) {trunkStartingHeight = 2}
-	
-	// widthMax *= 1.001;
-	trunkMax *= .00001 * age;
-	maxBranches += agingDirection * age;
-	
-	baseInk += agingDirection * (age * .03);
+	"seed": Math.random() * 10000 | 0,
+	"growthQueue": [],
 }
 
-canvas.addEventListener("click", ()=> {
-	agingDirection *= -1;
-	stopAging = false;
-})
-
-const windX = -1;   // wind direction vector
-const windY = 0;
-const bendability = 6; // greater than 1. The bigger this number the more the thin branches will bend first
-
-// the canvas height you are scaling up or down to a different sized canvas
-const windStrength = 0.01 * bendability * ((200 ** 2) / (canvas.height ** 2));  // wind strength
-
-
-// The wind is used to simulate branch spring back the following
-// two number control that. Note that the sum on the two following should
-// be below 1 or the function will oscillate out of control
-const windBendRectSpeed = 0.01;  // how fast the tree reacts to the wing
-const windBranchSpring = 0.98;   // the amount and speed of the branch spring back
-
-const gustProbability = 1/100; // how often there is a gust of wind
-
-// Values trying to have a gusty wind effect
-var windCycle = 0;
-var windCycleGust = 0;
-var windCycleGustTime = 0;
-var currentWind = 0;
-var windFollow = 0;
-var windActual = 0;
-
-
-// The seed value for the tree
-var treeSeed = Math.random() * 10000 | 0;
-
-// Vars to build tree with
-var branchCount = 0;
-var maxTrunk = 0;
-var treeGrow = 0.01; // this value should not be zero
-
-function restartTree() {
-    branchCount = 0;
-	widthMin = 0.6; // width reduction per branch min max 6
-	widthMax = 0.8;
-	trunkStartingHeight = 10; // 1/this
-	trunkMin = 6;  // trunk base width ,min and max
-	trunkMax = 10;
-	maxBranches = 3; // max number of branches
-	age = 1;
-	
-	baseInk = 10;
-	ink = baseInk;
-
-	treeSeed = Math.random() * 10000 | 0;
-	treeGrow = 0.1; // regrow tree
+function setRandom(tree) {
+	tree.seededRandom = (() => {
+		var seed = 1;
+		return { max : 2576436549074795, reseed (s) { seed = s }, random ()  { return seed = ((8765432352450986 * seed) + 8507698654323524) % this.max }}
+	})();
+	tree.randSeed = (seed) => tree.seededRandom.reseed(seed|0);
+	tree.randSI = (min = 2, max = min + (min = 0)) => (tree.seededRandom.random() % (max - min)) + min;
+	tree.randS  = (min = 1, max = min + (min = 0)) => (tree.seededRandom.random() / tree.seededRandom.max) * (max - min) + min;
 }
 
-var growthQueue = [];
+function windStrength(tree) {
+	return 0.01 * tree.bendability * ((200 ** 2) / (canvas.height ** 2));  // wind strength
+}
 
-// Starts a new tree
-function drawTree(seed) {
-    branchCount = 0;
-	ink = baseInk;
-    treeGrow += 0.01;
-    randSeed(seed);
-    maxTrunk = randSI(trunkMin, trunkMax);
-	growthQueue.push({
+const defaultWind = {
+	"x": -1, // wind direction vector
+	"y": 0,
+	
+	"bendRectSpeed": 0.01, // how fast the tree reacts to the wing
+	"branchSpring": 0.88, // the amount and speed of the branch spring back
+	"gustProbability": 1/100, // how often there is a gust of wind
+	
+	"cycle": 0,
+	"cycleGust": 0,
+	"cycleGustTime": 0,
+	"current": 0,
+	"follow": 0,
+	"actual": 0,
+}
+
+function drawTree(tree) {
+	tree.currentBranches = 0;
+	tree.randSeed(tree.seed);
+	tree.trunk = tree.randSI(tree.trunkMin, tree.trunkMax);
+	tree.ink = tree.inkPot;
+	tree.growthQueue.push({
 		"x": canvas.width / 2,
 		"y": canvas.height,
 		"dir": -Math.PI / 2, 
-		"length" : canvas.height / trunkStartingHeight, 
-		"width": maxTrunk
+		"length" : canvas.height / tree.trunkStartingHeight, 
+		"width": tree.trunk,
 	});
-	while (growthQueue.length > 0) {
-		var branch = growthQueue.shift();
-		treeGrow -= 0.2;
+	while (tree.growthQueue.length > 0) {
+		var branch = tree.growthQueue.shift();
 		drawBranch(
+			tree,
 			branch.x,branch.y,
 			branch.dir, 
 			branch.length, 
 			branch.width
 		);
-		treeGrow += 0.2;
 	}
 }
 
-// Recusive tree
-function drawBranch(x, y, dir, leng, width) {
-    branchCount ++;
-    const treeGrowVal = (treeGrow > 1 ? 1 : treeGrow < 0.1 ? 0.1 : treeGrow) ** 2 ;
-    
-	if (leng > ink) {
-		leng = ink;
-		ink = 0;
+function drawBranch(tree, x, y, dir, leng, width) {
+	tree.currentBranches++;
+
+	// Withdraw ink from the inkpot until we're out
+	if (leng > tree.ink) {
+		leng = tree.ink;
+		tree.ink = 0;
 	} else {
-		ink -= leng
+		tree.ink -= leng
 	}
 	
 	if (leng == 0) {
 		return;
 	}
 	
-    // get wind bending force and turn branch direction
-    const xx = Math.cos(dir) * leng * treeGrowVal;
-    const yy = Math.sin(dir) * leng * treeGrowVal;
-    const windSideWayForce = windX * yy - windY * xx;
-    
-    // change direction by addition based on the wind and scale to 
-    // (windStrength * windActual) the wind force
-    // ((1 - width / maxTrunk) ** bendability)  the amount of bending due to branch thickness
-    // windSideWayForce the force depending on the branch angle to the wind
-    dir += (windStrength * windActual) * ((1 - width / maxTrunk) ** bendability) * windSideWayForce;
-    
-    // draw the branch
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    ctx.lineTo(x, y);
-    x += xx;
-    y += yy;
-    ctx.lineTo(x, y);
-    ctx.stroke();
+	// get wind bending force and turn branch direction
+	const wind = tree.windState;
+	const xx = Math.cos(dir) * leng * 2; // TODO: Check treegrow
+	const yy = Math.sin(dir) * leng * 2;
+	const windSideWayForce = wind.x * yy - wind.y * xx;
+	
+	// change direction by addition based on the wind and scale to 
+	// (windStrength * windActual) the wind force
+	// ((1 - width / maxTrunk) ** bendability)  the amount of bending due to branch thickness
+	// windSideWayForce the force depending on the branch angle to the wind
+	dir += (windStrength(tree) * wind.actual) * ((1 - width / tree.trunk) ** tree.bendability) * windSideWayForce;
+	
+	// draw the branch
+	ctx.lineWidth = width;
+	ctx.beginPath();
+	ctx.lineTo(x, y);
+	x += xx;
+	y += yy;
+	ctx.lineTo(x, y);
+	ctx.stroke();
 	
 	if (x > canvas.width || y > canvas.height) {
-		stopAging = true;
+		tree.agingDirection = 0
 	}
     
     // Make sure we're not growing too much
-	if (branchCount < maxBranches) {
+	if (tree.currentBranches < tree.maxBranches) {
 		// to stop recusive bias (due to branch count limit)
 		// random select direction of first recusive bend
-		const rDir = randSI() ? -1 : 1;
+		const rDir = tree.randSI() ? -1 : 1;
 
-		growthQueue.push({
+		tree.growthQueue.push({
 			"x": x,
 			"y": y,
-			"dir": dir + randS(angMin, angMax) * rDir, 
-			"length" : leng * randS(lengMin, lengMax), 
-			"width": width * randS(widthMin, widthMax)
+			"dir": dir + tree.randS(tree.angMin, tree.angMax) * rDir, 
+			"length" : leng * tree.randS(tree.lengMin, tree.lengMax), 
+			"width": width * tree.randS(tree.widthMin, tree.widthMax)
 		});
 
-
-		// bend next branch the other way
-		growthQueue.push({
+        // bend other dir
+		tree.growthQueue.push({
 			"x": x,
 			"y": y,
-			"dir": dir + randS(angMin, angMax) * -rDir, 
-			"length" : leng * randS(lengMin, lengMax), 
-			"width": width * randS(widthMin, widthMax)
+			"dir": dir + tree.randS(tree.angMin, tree.angMax) * -rDir, 
+			"length" : leng * tree.randS(tree.lengMin, tree.lengMax), 
+			"width": width * tree.randS(tree.widthMin, tree.widthMax)
 		});
 	}
 }
 
-// Dont ask this is a quick try at wind gusts 
-// Wind needs a spacial component this sim does not include that.
-
-function updateWind() {
-    if (Math.random() < gustProbability) {
-        windCycleGustTime = (Math.random() * 10 + 1) | 0;
-    }
-    if (windCycleGustTime > 0) {
-        windCycleGustTime --;
-        windCycleGust += windCycleGustTime/20
-    } else {
-        windCycleGust *= 0.99;
-    }        
-    windCycle += windCycleGust;
-    currentWind = (Math.sin(windCycle/40) * 0.6 + 0.4) ** 2;
-    currentWind = currentWind < 0 ? 0 : currentWind;
-    windFollow += (currentWind - windActual) * windBendRectSpeed;
-    windFollow *= windBranchSpring ;
-    windActual += windFollow;
+function updateWind(wind, gustModifier) {
+	if (Math.random() < (wind.gustProbability * (gustModifier / 2))) {
+			wind.cycleGustTime = (Math.random() * 10 + 1) | 0;
+	}
+	if (wind.cycleGustTime > 0) {
+			wind.cycleGustTime --;
+			wind.cycleGust += wind.cycleGustTime/20
+	} else {
+			wind.cycleGust *= 0.99;
+	}        
+	wind.cycle += wind.cycleGust;
+	currentWind = (Math.sin(wind.cycle/40) * 0.6 + 0.4) ** 2;
+	currentWind = currentWind < 0 ? 0 : currentWind;
+	wind.follow += (currentWind - wind.actual) * wind.bendRectSpeed;
+	wind.follow *= wind.branchSpring ;
+	wind.actual += wind.follow;
 }
-restartTree();
-requestAnimationFrame(update);
+
+function updateTime(tree) {
+	// 0 aging direction means we've paused aging
+	if (tree.agingDirection == 0) {
+		return
+	}
+	
+	// The tree is of negative age. Reseed and make it grow
+	if (tree.inkPot <= 1) {
+		tree.agingDirection = 1;
+		resetTree(tree, tree.windState);
+	}
+	
+	// Make the inkpot bigger or smaller
+	var growthFactor = (tree.inkFactor * tree.agingDirection) - ( (1 / (tree.currentBranches + 1)) * 500 )
+	if (growthFactor <= 0) {
+		growthFactor = .5
+	}
+	tree.inkPot += (growthFactor * tree.agingDirection) * tree.growthModifier
+   
+    const potentialHeight = (1 / (Math.pow(tree.inkPot, 1 / (tree.heightFactor) ))) * 40;
+    if (potentialHeight < tree.trunkStartingHeight && potentialHeight > 0) {
+	    tree.trunkStartingHeight =  potentialHeight;
+    }
+}
+
+let analyser
+let audioCtx;
+function initAudioScanner() {
+	if(!audioCtx) {
+			audioCtx = new AudioContext();
+	}
+	stream = document.getElementById("audioPlayer").captureStream();
+	const mediaRecorder = new MediaRecorder(stream);
+	const source = audioCtx.createMediaStreamSource(stream);
+    
+	analyser = audioCtx.createAnalyser();
+	analyser.fftSize = 32;
+	const bufferLength = analyser.frequencyBinCount;
+	const dataArray = new Uint8Array(bufferLength);
+
+	source.connect(analyser);
+	
+	mediaRecorder.start();
+	console.log(mediaRecorder.state);
+	console.log("recorder started");
+}
+
+
+var minloud = 999999;
+var maxloud = 0;
+function updateGrowthModifier(tree) {
+	var array = new Uint8Array(analyser.fftSize);
+	analyser.getByteTimeDomainData(array);
+	var average = 0;
+	var max = 0;
+	for (var a of array) {
+			a = Math.abs(a - 128);
+			average += a;
+			max = Math.max(max, a);
+	}
+
+	average /= array.length;
+	
+	// Mapping from the gain range (0-100) to the growthModRange
+	tree.growthModifier = tree.minGrowthMod + ((tree.maxGrowthMod - tree.minGrowthMod) / (100 - 0)) * (average - 0)
+}
+
+function resetTree(tree, wind) {
+	Object.assign(tree, defaultTree);
+	tree.seed = Math.random() * 10000 | 0;
+	setRandom(tree);
+	tree.windState = wind;
+}
+
+// Create a new tree using the defaults and then reseed it
+const wind = {};
+Object.assign(wind, defaultWind);
+const tree = {};
+resetTree(tree, wind);
+
+
 function update() {
 	ctx.fillStyle = 'black';
 	ctx.strokeStyle = 'white';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    updateWind();
-	passTime(.1);
-    drawTree(treeSeed);
-    requestAnimationFrame(update);
+	ctx.fillRect(0,0,canvas.width,canvas.height);
+	updateWind(wind, tree.growthModifier);
+	updateTime(tree);
+	updateGrowthModifier(tree);
+	
+	drawTree(tree);
+	requestAnimationFrame(update);
 }
+
+ctx.fillStyle = 'black';
+ctx.strokeStyle = 'white';
+ctx.fillRect(0,0,canvas.width,canvas.height);
+
+var started = false;
+document.body.addEventListener('mouseup', ()=> {
+	if (started) { return; }
+	
+	// Don't set the click handler on the tree right away otherwise it gets confused
+	setTimeout(function() {
+		canvas.addEventListener("mouseup", ()=> {
+			if (tree.agingDirection == 0) {
+				tree.agingDirection = -1;
+			} else {
+				tree.agingDirection = 0;
+			}
+		});
+	});
+	
+	// Show text
+	document.querySelectorAll(".hover-box").forEach((node) => { 
+		node.style.display = "block"; 
+	})
+	document.querySelectorAll(".hover-box").forEach((node) => { 
+		setTimeout(function() {
+		    node.style.opacity = 1;
+		}, 500);
+	})
+
+	// Start playing
+	var music = document.querySelector("#audioPlayer")
+	music.play();
+	// Listen to the audio.
+	initAudioScanner();
+	// Start drawing
+	requestAnimationFrame(update);
+	started = true;
+}, true); 

@@ -11,9 +11,12 @@ body  {
 }
 
 .hover-box {
-	height: 50px;
-	width: 100px;
+	/* width: 100px; */
 	position: absolute;
+	opacity: 0;
+	display: none;
+	transition: opacity 5s;
+	-webkit-transition: opacity 5s; /* Safari */
 }
 
 #header {
@@ -45,4 +48,12 @@ a {
 
 a:hover {
     text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #000000, 0 0 40px #000000, 0 0 50px #000000, 0 0 60px #000000, 0 0 70px #000000;
+}
+
+h1 {
+	font-weight: normal;
+}
+
+h2 {
+	font-weight: lighter;
 }
