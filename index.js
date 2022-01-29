@@ -264,12 +264,12 @@ function update() {
 	updateWind(wind, tree.growthModifier);
 	updateTime(tree);
 
-    ctx.fillStyle = "black";
-    ctx.shadowBlur = tree.glowModifier * 50;
-    ctx.shadowColor = "white";
+	ctx.fillStyle = "black";
+	ctx.shadowBlur = tree.glowModifier * 50;
+	ctx.shadowColor = "white";
 	ctx.fillRect(0,canvas.height,canvas.width,canvas.height);
 
-    ctx.shadowBlur = 0;
+	ctx.shadowBlur = 0;
 	
 	updateGrowthModifier(tree);
 	drawTree(tree);
@@ -294,6 +294,8 @@ document.body.addEventListener('mouseup', ()=> {
 			}
 		});
 	});
+	
+	document.getElementById("start").style.opacity = 0;
 	
 	// Show text
 	document.querySelectorAll(".hover-box").forEach((node) => { 

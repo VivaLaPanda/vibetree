@@ -18,8 +18,8 @@ body  {
 	position: absolute;
 	opacity: 0;
 	display: none;
-	/* transition: opacity 1ms; */
-	/* -webkit-transition: opacity 1ms; */ /* Safari */
+	transition: opacity 10s; 
+	 -webkit-transition: opacity 10s; */ /* Safari */
 }
 
 #header {
@@ -42,6 +42,20 @@ body  {
 	text-align: right;
 	right: 13%;
     bottom: 11%;
+}
+
+#start {
+  display: flex;
+  justify-content: center;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 45%;
+	
+	cursor: pointer;
+	
+	transition: opacity 5s; 
+	 -webkit-transition: opacity 5s; */ /* Safari */
 }
 
 a {
